@@ -7,42 +7,38 @@
  * Generates the XML file required for rendering a Display Summary Plugin report.
  * The XML file generation is customized from a report configuration properties file
  * Customized for use with the Jenkins Scriptler Plugin
+ * Required Script Parameters: workspaceVar, configProps
  * 
  * Author: Ioannis K. Moutsatsos
- * Last Update: 7/5/2014
+ * Last Update: 2/06/2015 SVN rev 8052
  */
 
 import groovy.xml.*
-/*
-  Script requires 2 parameters
-  Add these parameters in Scriptler-Script Build Step Config so they can be propagated to the script environment
+println "\n---------Write XML Template for Summary Display Plugin (writeXMLProperties_scriptlet.groovy)---------"
+def env = System.getenv() //also get the environment
+def workspace = workspaceVar
+def options = [:]
+def imageExtensions = ['tif', 'tiff', 'png', 'jpeg', 'jpg', 'gif','bmp']
+/* Set default size for rendered images.
+   May be changed from report configuration on per table basis using the 'imgwidth' table property
+ */
+def imgWidth=200
 
-  workspaceVar	: The current Jenkins project wokspace-$WORKSPACE
-  configProps	: Local path to the report configuration properties file 
-*/
-def workspace=workspaceVar
-def xmlReportConfig=configProps
+options.i = configProps //scriptlet parameter
 
 def separator = ','
-def noPropUse=false // a flag whether properties file will be used
+def noPropUse = false // a flag whether properties file will be used
 //Create the properties objects, from the file system:
 Properties configProps = new Properties()   // report configuration
-Properties summaryProps = new Properties()   // report field content
-File configFile = new File(xmlReportConfig)
-configProps.load(configFile.newDataInputStream())
+Properties summaryProps = new Properties()   // report content
+File configFile = new File(options.i)
 
-def reportStyle = configProps.getProperty('report.style')
-/*
-	Start by reading field content
-	summary.properties is a required configuration property pointing to a file containing key value fieed values
-	if not used it's value in the cofiguration file must be set to: none
-	summary.properties=none
-*/
+configProps.load(configFile.newDataInputStream())
 propSource = configProps.getProperty('summary.properties')
-if (propSource.startsWith('none')){
-    noPropUse=true
+if (propSource.startsWith('none')) {
+    noPropUse = true
     println 'Report does not use properties file'
-}else{
+} else {
     if (propSource.startsWith('http')) {
         propSource.toURL().eachLine {
             if (it.contains('=')) {
@@ -59,6 +55,11 @@ if (propSource.startsWith('none')){
 def columnSet = []
 def rowheader = []
 def headerIndex = []
+
+
+
+def reportStyle = configProps.getProperty('report.style')
+
 def writer = new StringWriter()
 def xml = new MarkupBuilder(writer)
 /*
@@ -72,44 +73,44 @@ Report style options include
  */
 switch (reportStyle) {
     case "tab":
-        thead = []; theadTemp=[]
+        thead = []; theadTemp = []
         thead = configProps.getProperty('tab.header').split(',')
         //confirm that content file (CSV) exists for each tab.header and remove those headers for which it does not
-        println "Original: $thead"
+        println "TABS-Original: $thead"
         thead.each {
-            if (configProps.getProperty("content.${it}")=='table'){
+            if (configProps.getProperty("content.${it}") == 'table') {
                 if (configProps.getProperty("table.data.${it}").startsWith('http')) {
-                 if(getResponseCode(configProps.getProperty("table.data.${it}"))==200){
-                     theadTemp.add(it)
-                 }else{
-                     println "Could not access content: ${configProps.getProperty("table.data.${it}")}"
-                 }
-                }else{
-                tabContent = "${workspace}/${configProps.getProperty("table.data.${it}")}"
-                tabContentFile= new File(tabContent)
-                if (tabContentFile.exists()){
-                    theadTemp.add(it)
-                }else{
-                    println "Could not find content: $tabContent"
-                }
-                    }// end logic check
+                    if (getResponseCode(configProps.getProperty("table.data.${it}")) == 200) {
+                        theadTemp.add(it)
+                    } else {
+                        println "Could not access content: ${configProps.getProperty("table.data.${it}")}"
+                    }
+                } else {
+                    tabContent = "${workspace}/${configProps.getProperty("table.data.${it}")}"
+                    tabContentFile = new File(tabContent)
+                    if (tabContentFile.exists()) {
+                        theadTemp.add(it)
+                    } else {
+                        println "Could not find content: $tabContent"
+                    }
+                }// end logic check
             }
-            if (configProps.getProperty("content.${it}")=='field'&& !noPropUse){
+            if (configProps.getProperty("content.${it}") == 'field' && !noPropUse) {
                 tabContent = configProps.getProperty("summary.properties")
                 theadTemp.add(it)
             }
 
         }
-        thead=theadTemp //replace header with subset where content exists
-        println "Adjusted from available content: $thead"
+        thead = theadTemp //replace header with subset where content exists
+        println "TABS-Adjusted: $thead (from available content)"
         xml.tabs {
             thead.each {
                 //println it
                 tabContent = configProps.getProperty("content.${it}")
-                if(configProps.getProperty("separator.${it}")!=null){
-                    separator=configProps.getProperty("separator.${it}")
-                }  else{
-                    separator=','
+                if (configProps.getProperty("separator.${it}") != null) {
+                    separator = configProps.getProperty("separator.${it}")
+                } else {
+                    separator = ','
                 }
                 startOfKey = configProps.getProperty("field.key.${it}")
                 valColor = configProps.getProperty('field.value.color')
@@ -118,10 +119,10 @@ switch (reportStyle) {
                     switch (tabContent) {
                         case "field":
                             summaryProps.sort().each { k, v ->
-                                if (k.toString().startsWith(startOfKey)) {
-                                    if(v.startsWith('http://')){
-                                        field(name: k, value: 'Link', detailcolor: valColor, href:v)
-                                    }else{
+                                if (k.toString().startsWith(startOfKey)&&v!=null) {
+                                    if (v.startsWith('http')) {
+                                        field(name: k, value: 'Link', detailcolor: valColor, href: '/'+v.split(':/')[1])
+                                    } else {
                                         field(name: k, value: v, detailcolor: valColor)
                                     }
                                 }
@@ -131,39 +132,42 @@ switch (reportStyle) {
                         case "table":
                             //create a table from referenced file
                             // println "Working with $tabName"
-                            def dataTableSource ="${configProps.getProperty("table.data.${tabName}")}" //"${workspace}/${configProps.getProperty("table.data.${tabName}")}"
-                            println "$it Table data from: $dataTableSource"
-                            propKey="table.header.${tabName}"
+                            def dataTableSource = "${configProps.getProperty("table.data.${tabName}")}" //"${workspace}/${configProps.getProperty("table.data.${tabName}")}"
+                            println "$tabName : Table data from: $dataTableSource"
+                            propKey = "table.header.${tabName}"
                             // if no table.length property is defined we write the entire table
-                            def ignoreLineCount=false
-                            def rownum=0
-                            if(configProps.getProperty("table.length.${tabName}")!=null){
+                            def ignoreLineCount = false
+                            def rownum = 0
+                            if (configProps.getProperty("table.length.${tabName}") != null) {
                                 rownum = configProps.getProperty("table.length.${tabName}").toInteger()
-                            }else{
-                                ignoreLineCount=true
+                            } else {
+                                ignoreLineCount = true
+                            }
+                            if (configProps.getProperty("table.imgwidth.${tabName}") != null) {
+                                imgWidth = configProps.getProperty("table.imgwidth.${tabName}").toInteger()
                             }
 
                             if (dataTableSource.startsWith('http')) {
                                 dataTableSource.toURL().withReader { reader ->
                                     columnSet = reader.readLine().split(separator)
-                                    if (configProps.containsKey("table.header.${tabName}".toString())){
+                                    if (configProps.containsKey("table.header.${tabName}".toString())) {
                                         rowheader = configProps.getProperty("table.header.${tabName}").split(',')
-                                    }else{
-                                        rowheader=columnSet
+                                    } else {
+                                        rowheader = columnSet
                                     }
                                     headerIndex = createIndexIntoList(rowheader.toList(), columnSet.toList())
                                 }
 
                             } else {
-                                dataTableSource ="${workspace}/${configProps.getProperty("table.data.${tabName}")}"
+                                dataTableSource = "${workspace}/${configProps.getProperty("table.data.${tabName}")}"
                                 def dataFile = new File(dataTableSource)
                                 dataFile.withReader {
                                     reader ->
                                         columnSet = reader.readLine().split(separator)
-                                        if (configProps.containsKey("table.header.${tabName}".toString())){
+                                        if (configProps.containsKey("table.header.${tabName}".toString())) {
                                             rowheader = configProps.getProperty("table.header.${tabName}").split(',')
-                                        }else{
-                                            rowheader=columnSet
+                                        } else {
+                                            rowheader = columnSet
                                         }
                                         headerIndex = createIndexIntoList(rowheader.toList(), columnSet.toList())
                                 }
@@ -182,10 +186,20 @@ switch (reportStyle) {
                                                 headerIndex.each { h ->
                                                     //if column heading exists we create a table cell, else we skip
                                                     //we also check that the row can be split into enough values or we skip
-                                                    if (h != -1&&columnSet.size()==headerIndex.size()) {
-                                                        if(columnSet[h].startsWith('http://')){
-                                                            td(value: 'Link', bgcolor: 'white', fontcolor: 'black', align: 'left', href:columnSet[h] )
-                                                        }else{
+                                                    isImage = false //default flag for image file-values
+                                                    if (h != -1 && columnSet.size() == headerIndex.size()) {
+                                                        //check if cell value is an image
+                                                        imageExtensions.each {
+                                                            if (columnSet[h].endsWith(it)) {
+                                                                isImage = true
+                                                            }
+                                                        }
+                                                        if (columnSet[h].startsWith('http') && isImage) {
+                                                            def imgUrl=(columnSet[h].split(':/')[1]).replaceAll('\\\\','')
+                                                            xml.mkp.yieldUnescaped("<td><![CDATA[<a href=\"${'/'+imgUrl}\"/><img width=$imgWidth src=\"${'/'+imgUrl }\"/></a>]]></td>")
+                                                        } else if (columnSet[h].startsWith('http')) {
+                                                            td(value: 'Link', bgcolor: 'white', fontcolor: 'black', align: 'left', href: '/'+columnSet[h].split(':/')[1])
+                                                        } else {
                                                             td(value: columnSet[h], bgcolor: 'white', fontcolor: 'black', align: 'left')
                                                         }
                                                     }
@@ -193,13 +207,13 @@ switch (reportStyle) {
 
                                             }
                                             // if we are counting lines we keep track
-                                            if(!ignoreLineCount){
+                                            if (!ignoreLineCount) {
                                                 lineCount++
                                             }
                                         }
                                     }//end each line
                                 } //end if startsWith http
-                                else{
+                                else {
                                     //reading from local file system
                                     dataFile = new File(dataTableSource)
                                     lineCount = 0
@@ -212,19 +226,28 @@ switch (reportStyle) {
                                                 headerIndex.each { h ->
                                                     //if column heading exists we create a table cell, else we skip
                                                     //we also check that the row can be split into enough values or we skip
-                                                    if (h != -1&&columnSet.size()==headerIndex.size()) {
-                                                        if(columnSet[h].startsWith('http://')){
-                                                            td(value: 'Link', bgcolor: 'white', fontcolor: 'black', align: 'left', href:columnSet[h] )
-                                                        }else{
+                                                    //set logic flag if cell value is an image
+                                                    isImage = false //default flag for image file-values
+                                                    if (h != -1 && columnSet.size() == headerIndex.size()) {
+                                                        imageExtensions.each {
+                                                            if (columnSet[h].endsWith(it)) {
+                                                                isImage = true
+                                                            }
+                                                        }
+                                                        if (columnSet[h].startsWith('http') && isImage) {
+                                                            def imgUrl=(columnSet[h].split(':/')[1]).replaceAll('\\\\','')
+                                                            xml.mkp.yieldUnescaped("<td><![CDATA[<a href=\"${'/'+imgUrl}\"/><img width=$imgWidth src=\"${'/'+imgUrl }\"/></a>]]></td>")
+                                                        } else if (columnSet[h].startsWith('http')) {
+                                                            td(value: 'Link', bgcolor: 'white', fontcolor: 'black', align: 'left', href: '/'+columnSet[h].split(':/')[1])
+                                                        } else {
                                                             td(value: columnSet[h], bgcolor: 'white', fontcolor: 'black', align: 'left')
                                                         }
-
                                                     }
                                                 }
 
                                             }
                                             // if we are counting lines we keep track
-                                            if(!ignoreLineCount){
+                                            if (!ignoreLineCount) {
                                                 lineCount++
                                             }
                                         }
@@ -242,14 +265,14 @@ switch (reportStyle) {
 
         break
     case "table":
-        println 'TO BE IMPLEMENTED: Table Report'
+        println 'Will create table report'
         break
 }
 
 def writer4file = new FileWriter("$workspace/writeXmlSummary.xml")
 XmlUtil.serialize(writer.toString(), writer4file)
-println "Summary in:"
-println new File("$workspace/writeXmlSummary.xml").getCanonicalPath()
+println "Summary Display XML Template: ${new File("$workspace/writeXmlSummary.xml").getCanonicalPath()}"
+writer4file.close() //close the file
 
 /*
 Find index of a list members in another list
@@ -267,9 +290,10 @@ def createIndexIntoList(List source, List target) {
 }
 /* Method checks if a URL is accessible
  */
+
 def getResponseCode(String urlString) throws MalformedURLException, IOException {
     URL u = new URL(urlString);
-    HttpURLConnection huc =  (HttpURLConnection)  u.openConnection();
+    HttpURLConnection huc = (HttpURLConnection) u.openConnection();
     huc.setRequestMethod("GET");
     huc.connect();
     return huc.getResponseCode();
