@@ -16,9 +16,9 @@ This scriptlet returns a human read-able list of builds of a Jenkins project. Th
 The scriptlet is used in combination with a dynamic Jenkins choice control such as [uno-choice](https://github.com/biouno/uno-choice-plugin), where the scriptlet provides the formatted build names as choice values dynamically.
 
 #### UC_helper_GetBuildsByNumAsMap.groovy
-This scriptlet returns a java map of build references (for one or more Jenkins jobs) within a specified build number range. Used in combination with an Uno-Choice Dynamic parameter it provides a human readbale display value backed by a standardized reference build represented by the map key in the format JOB_NAME#BUILD_NUMBER.
+This scriptlet returns a java map of build references (for one or more Jenkins jobs) within a specified build number range. Used in combination with an Uno-Choice Dynamic parameter it provides a human readbale display value backed by a standardized reference build represented by the map key in the format `JOB_NAME#BUILD_NUMBER`.
 
-Similarly to the getBuildByNumber_scriptlet (above)
+Similarly to the `getBuildByNumber_scriptlet` (above)
   * it can return builds within a user defined build number range
   * it has a customizable format
   * it can return builds with a certain build status (the default is SUCCESS)
