@@ -1,16 +1,19 @@
+/*** BEGIN META {
+  "name" : "writeXMLProperties_scriptlet",
+  "comment" : "Run before XML Summary report post-build step to generate the writeXmlSummary.xml report template",
+  "parameters" : [ 'workspaceVar','configProps'],
+  "core": "1.593",
+  "authors" : [
+    { name : "Ioannis Moutsatsos" }
+  ]
+} END META**/
+
 /**
- * writeXMLproperties_scriptlet
- 
- * Helper utility for Jenkins Display Summary Plugin
- * Reference: https://wiki.jenkins-ci.org/display/JENKINS/Summary+Display+Plugin
- * 
- * Generates the XML file required for rendering a Display Summary Plugin report.
- * The XML file generation is customized from a report configuration properties file
- * Customized for use with the Jenkins Scriptler Plugin
- * Required Script Parameters: workspaceVar, configProps
- * 
+ * Writes a Summary Display Jenkins Plugin XML Template from a configuration file.
+ * Summary content can be read from files formatted as Java properties or in delimited format
  * Author: Ioannis K. Moutsatsos
- * Last Update: 2/06/2015 SVN rev 8052
+ * Last Update: 3/24/2015 rev 8571
+ * Required Script Parameters: workspaceVar, configProps
  */
 
 import groovy.xml.*
@@ -173,7 +176,8 @@ switch (reportStyle) {
                                 }
                                 //columnSet //must read CSV file from path
                             }
-                            table {
+                            // DMPQM-298 make table sort-able
+                            table (sorttable:"yes") {
                                 //create table header
                                 //now add table data
                                 if (dataTableSource.startsWith('http')) {
