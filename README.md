@@ -25,3 +25,5 @@ Similarly to the `getBuildByNumber_scriptlet` (above)
 
 In addition
   * it can display user-friendly choice options while internally using a standardized build reference format (the map key)
+
+See [here](https://github.com/imoutsatsos/jenkins-scriptlets/wiki/Example_UC_helper_GetBuildsByNumAsMap) for details on a `UC_helper_GetBuildsByNumAsMap` usage example.
