@@ -8,3 +8,7 @@ See the [this wiki](https://github.com/imoutsatsos/jenkins-scriptlets/wiki/Scrip
 #### Other Scriptlets
 For a collection of other useful Scriptlets, please, see [this wiki](https://github.com/imoutsatsos/jenkins-scriptlets/wiki/Other-Scriptlets) page.
 
+####Links to External Scriplet Catalogs
+Scriptler scripts for [managing/interacting](https://github.com/jenkinsci/jenkins-scripts/tree/master/scriptler) with Jenkins.
+
+
