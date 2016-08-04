@@ -1,5 +1,5 @@
 /*** BEGIN META {"name" : "writeXMLProperties_scriptlet",
- "comment" : "Writes an XML Summary report from a properties file. Report configuration is read from a separate properties configuration file. Supports table filtering",
+ "comment" : "Writes an XML Summary report from a report configuration file. The report configuration acts as a template for report generation Supports table filtering",
  "parameters" : [ 'workspaceVar','configProps'],
  "core": "1.596",
  "authors" : [{ name : "Ioannis Moutsatsos" }]} END META**/
