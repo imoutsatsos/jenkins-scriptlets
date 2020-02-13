@@ -36,6 +36,7 @@ fileStyle="""[shape=tab, color=black]"""
 drStyle="""[shape=hexagon, color=blue]""" //class unochoice.DynamicReferenceParameter
 drHiddenStyle="""[style=filled, shape=hexagon, fillcolor=gray]""" //hidden (ET_FORMATTED_HIDDEN_HTML) unochoice.DynamicReferenceParameter
 scriptLink="""[dir=both color="maroon4"]"""
+seqId=1
 
 job.properties.each{
   //println it.value.class
@@ -46,7 +47,11 @@ job.properties.each{
       paramNode=[:]
       //println '\n\t'+pdn.name
       //println '\t\t'+pdn.getClass() +'\n'
-      paramNode.put('name',pdn.name.replace('.','_'))
+      paramName=pdn.name.replace('.','_') //dot does not support names with dot
+          if (paramName==''){
+            paramName="UNNAMED_$seqId"
+    }
+      paramNode.put('name',paramName)
       paramNode.put('class',pdn.getClass())
       paramNode.put('scriptType','na')
       paramNode.put('scriptName','na')
@@ -70,6 +75,7 @@ job.properties.each{
         paramNode.put('refParam',pdn.getReferencedParameters().tokenize(','))
       }
       paramList.add(paramNode)
+      seqId++
     }
     
     
@@ -87,9 +93,6 @@ subgraph cluster_0 {
 """
 
 paramList.each{l=it.value->
-    if (l.name==''){
-        l.name='UNNAMED'
-    }
     switch(l.class as String){
     case "class hudson.model.BooleanParameterDefinition":
          println "\t${l.name}$booleanStyle;"
