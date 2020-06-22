@@ -1,5 +1,5 @@
 /*** BEGIN META {
-  "name" : "",
+  "name" : "jenkinsJobParamBuilder",
   "comment" : "Assembles new job parameters from other jobs",
   "parameters" : [ 'newJobNameString','appendModeBoolean','sourceDataJson'],
   "core": "2.121",
@@ -45,7 +45,7 @@ paramAssembly.each{
 sourceJob=jenkins.model.Jenkins.instance.getJob(it.source_job)
 //UNNAMED parameters are retrieved by index others by their original name
   if (it.param_ori.startsWith('UNNAMED')){
-    unnamedIndx=it.param_ori.split('_')[-1] as integer
+    unnamedIndx=it.param_ori.split('_')[-1] as Integer
 	  newParamDef=sourceJob.getProperty('hudson.model.ParametersDefinitionProperty').getParameterDefinitions()[unnamedIndx]    
   }else{
 	  newParamDef=sourceJob.getProperty('hudson.model.ParametersDefinitionProperty').getParameterDefinition(it.param_ori)
