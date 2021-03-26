@@ -46,9 +46,9 @@ sourceJob=jenkins.model.Jenkins.instance.getJob(it.source_job)
 //UNNAMED parameters are retrieved by index others by their original name
   if (it.param_ori.startsWith('UNNAMED')){
     unnamedIndx=it.param_ori.split('_')[-1] as Integer
-	  newParamDef=sourceJob.getProperty('hudson.model.ParametersDefinitionProperty').getParameterDefinitions()[unnamedIndx]    
+	newParamDef=sourceJob.getProperty('hudson.model.ParametersDefinitionProperty').getParameterDefinitions()[unnamedIndx-1] //array index is minus one of param index   
   }else{
-	  newParamDef=sourceJob.getProperty('hudson.model.ParametersDefinitionProperty').getParameterDefinition(it.param_ori)
+	newParamDef=sourceJob.getProperty('hudson.model.ParametersDefinitionProperty').getParameterDefinition(it.param_ori)
   }
 //newParamDef.remove('name')
 //newParamDefs.put('name',it.param_label)
@@ -60,7 +60,7 @@ if (reusing && targetJob.getProperty(ParametersDefinitionProperty.class)!=null &
     ParametersDefinitionProperty currentParams = targetJob.getProperty(ParametersDefinitionProperty.class)
     newParamDefs.each{pdef->
     currentParams.getParameterDefinitions().add(pdef)
-      println "\t${pdef.name} (appended)"
+    println "\t${pdef.name} (appended)"
     }
 
 }else{
@@ -70,16 +70,15 @@ if (reusing && targetJob.getProperty(ParametersDefinitionProperty.class)!=null &
         targetJob.removeProperty(ParametersDefinitionProperty.class)
         targetJob.addProperty(new hudson.model.ParametersDefinitionProperty(newParamDefs))
       println "New Job Parameters:"
-      newParamDefs.each{
-        println "\t${it.name} "
+      newParamDefs.eachWithIndex{it,ind->
+      println "\t${(it.name!='')?it.name:paramAssembly[ind].param_ori}"
       }
     }else{
-    targetJob.addProperty(new hudson.model.ParametersDefinitionProperty(newParamDefs))
+        targetJob.addProperty(new hudson.model.ParametersDefinitionProperty(newParamDefs))
     }
 }   
 
 //Save the job-required for BuildWithParameters
     targetJob.save()
 
-//return """<a href="/job/$newJobName/build">Review $newJobName </a>"""
 println "try your new job here:"+ "${jenkins.model.Jenkins.instance.getRootUrl()}job/$newJobName/build"
